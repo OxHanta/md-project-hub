@@ -1,0 +1,47 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/server.js"
+    },
+    {
+      "source": "/projects",
+      "destination": "/public/index.html"
+    },
+    {
+      "source": "/projects/(.*)",
+      "destination": "/public/index.html"
+    },
+    {
+      "source": "/engagements",
+      "destination": "/public/index.html"
+    },
+    {
+      "source": "/engagements/(.*)",
+      "destination": "/public/index.html"
+    },
+    {
+      "source": "/ai-analyzer",
+      "destination": "/public/index.html"
+    },
+    {
+      "source": "/my-desk",
+      "destination": "/public/index.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/public/$1"
+    }
+  ]
+}
