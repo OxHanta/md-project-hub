@@ -15,8 +15,38 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Middleware
-const upload = multer({ storage: multer.memoryStorage() });
-app.use(cors());
+// Reject unreasonably large uploads to protect against memory-exhaustion DoS.
+const MAX_UPLOAD_BYTES = 15 * 1024 * 1024; // 15 MB
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_UPLOAD_BYTES, files: 1 }
+});
+
+// Restrict cross-origin access to an explicit allow-list (default: same-origin only).
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+app.use(cors({
+  origin: (origin, cb) => {
+    // Same-origin requests have no `origin` header -> always allow.
+    if (!origin) return cb(null, true);
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    // Unknown cross-origin caller -> reject (no CORS headers sent).
+    return cb(null, false);
+  },
+  credentials: true
+}));
+
+// Basic security hardening headers.
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  next();
+});
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public')); // Serve the frontend
 
@@ -192,6 +222,15 @@ IMPORTANT INSTRUCTIONS:
     console.error('Gemini API error:', error);
     res.status(500).json({ error: error.message || 'An error occurred during analysis.' });
   }
+});
+
+// Centralized error handler (e.g. turn multer limit errors into clean 413s).
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    return res.status(413).json({ error: 'Upload too large. Maximum size is 15 MB.' });
+  }
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 app.listen(port, () => {
