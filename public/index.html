@@ -1209,6 +1209,25 @@
 
       let currentUserRole = null;
 
+      // --- SECURITY: HTML / URL escaping helpers (defense against stored & reflected XSS) ---
+      function escapeHtml(value) {
+        if (value === null || value === undefined) return '';
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+      // Only allow safe URL schemes; block javascript: and other dangerous schemes in href/src.
+      function safeUrl(url) {
+        if (typeof url !== 'string') return '';
+        const trimmed = url.trim();
+        if (/^(https?:|mailto:)/i.test(trimmed)) return trimmed;
+        if (/^data:image\//i.test(trimmed)) return trimmed; // images uploaded as data URLs
+        return '';
+      }
+
       document.getElementById('login-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('email').value.toLowerCase();
@@ -1608,7 +1627,7 @@
           <div style="position:absolute;width:18px;top:0;left:-13px;bottom:0;border-radius:6px 0 0 6px;background:${barColor}"></div>
           <div style="display:flex;justify-content:space-between;align-items:flex-start">
             <div style="flex:1;padding-right:8px">
-              <div style="font-family:Poppins,sans-serif;font-weight:500;font-size:16px;line-height:24px;color:#303030">${p.name}${badgeHtml}</div>
+              <div style="font-family:Poppins,sans-serif;font-weight:500;font-size:16px;line-height:24px;color:#303030">${escapeHtml(p.name)}${badgeHtml}</div>
             </div>
             <div class="relative dashboard-options-menu" style="flex-shrink:0">
               <button style="background:none;border:none;cursor:pointer;color:#B2B2B2;padding:0;line-height:1" onclick="toggleDropdown(event,'proj-menu-${p.id}')">
@@ -1623,7 +1642,7 @@
           <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:8px">
             <div style="display:flex;align-items:center;gap:4px">
               <span class="material-symbols-outlined" style="font-size:12px;color:#091D36">person</span>
-              <span style="font-family:Roboto,sans-serif;font-weight:500;font-size:10px;line-height:14px;color:#091D36">${p.handler || 'Unassigned'}</span>
+              <span style="font-family:Roboto,sans-serif;font-weight:500;font-size:10px;line-height:14px;color:#091D36">${escapeHtml(p.handler || 'Unassigned')}</span>
             </div>
             <div style="text-align:right">
               <div style="font-family:Roboto,sans-serif;font-weight:400;font-size:10px;line-height:14px;color:#686868">Due</div>
@@ -1649,11 +1668,11 @@
               return `
               <div class="p-4 ${bgClass} border-l-4 ${borderClass} mb-3">
                 <div class="flex justify-between items-start mb-2">
-                  <span class="font-bold text-[11px] ${topTextClass} uppercase tracking-wider">${r.severity ? r.severity : ''}</span>
-                  <span class="text-[11px] text-slate-400 font-medium">${r.statusText ? r.statusText : ''}</span>
+                  <span class="font-bold text-[11px] ${topTextClass} uppercase tracking-wider">${escapeHtml(r.severity ? r.severity : '')}</span>
+                  <span class="text-[11px] text-slate-400 font-medium">${escapeHtml(r.statusText ? r.statusText : '')}</span>
                 </div>
-                ${r.title && r.title !== 'Risk Flag' ? `<h3 class="font-bold text-[14px] text-[#003366] dark:text-blue-300 mb-1">${r.title}</h3>` : ''}
-                <p class="text-[13px] text-slate-600 dark:text-slate-400 leading-relaxed">${r.description}</p>
+                  ${r.title && r.title !== 'Risk Flag' ? `<h3 class="font-bold text-[14px] text-[#003366] dark:text-blue-300 mb-1">${escapeHtml(r.title)}</h3>` : ''}
+                <p class="text-[13px] text-slate-600 dark:text-slate-400 leading-relaxed">${escapeHtml(r.description)}</p>
               </div>
             `}).join('');
           riskListEl.innerHTML = riskHtml;
@@ -1696,7 +1715,7 @@
                 <span class="text-[9px] font-bold ${badgeClass} px-1.5 py-0.5 rounded-sm uppercase tracking-wider">${badgeText}</span>
               </div>
               <div class="flex justify-between items-start mt-1">
-                 <h3 class="font-bold text-sm text-primary dark:text-white leading-tight pr-2">${e.title}</h3>
+                 <h3 class="font-bold text-sm text-primary dark:text-white leading-tight pr-2">${escapeHtml(e.title)}</h3>
                  <div class="flex items-center gap-2 shrink-0">
                    ${dateInfo}
                    <div class="relative dashboard-options-menu">
@@ -1711,7 +1730,7 @@
               </div>
               <div class="flex items-center gap-1.5 text-xs text-outline dark:text-slate-400 mt-2">
                 <span class="material-symbols-outlined text-[14px]">person</span>
-                <span class="font-medium truncate">${e.handler || 'Unassigned'} / ${e.partner}</span>
+                <span class="font-medium truncate">${escapeHtml(e.handler || 'Unassigned')} / ${escapeHtml(e.partner)}</span>
               </div>
             </div>
           </div>
@@ -1746,23 +1765,23 @@
             
             <div class="p-5 flex flex-col flex-1">
               <div class="flex justify-between items-start mb-3 gap-2">
-                <h3 class="font-bold text-base text-primary dark:text-white leading-tight">${p.name}</h3>
-                <span class="px-2.5 py-0.5 rounded-full ${styles.badge} text-[10px] font-bold uppercase tracking-wider shrink-0">${p.status}</span>
+                <h3 class="font-bold text-base text-primary dark:text-white leading-tight">${escapeHtml(p.name)}</h3>
+                <span class="px-2.5 py-0.5 rounded-full ${styles.badge} text-[10px] font-bold uppercase tracking-wider shrink-0">${escapeHtml(p.status)}</span>
               </div>
               
               <div class="text-sm text-outline dark:text-slate-400 mb-4 flex-1 line-clamp-3">
-                ${p.notes || p.category || 'No breakdown provided.'}
+                ${escapeHtml(p.notes || p.category || 'No breakdown provided.')}
               </div>
               
               <div class="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 space-y-2 mt-auto">
                 <div class="flex items-center gap-2 text-sm">
                   <span class="material-symbols-outlined text-[16px] text-primary dark:text-[#00FFFF]">person</span>
-                  <span class="font-medium text-primary dark:text-slate-200 truncate">${p.handler || 'Unassigned'}</span>
+                  <span class="font-medium text-primary dark:text-slate-200 truncate">${escapeHtml(p.handler || 'Unassigned')}</span>
                 </div>
                 ${dateInfo}
                 ${p.region ? `<div class="flex items-center gap-2 text-sm mt-1">
                   <span class="material-symbols-outlined text-[16px] text-secondary dark:text-slate-400">location_on</span>
-                  <span class="text-secondary dark:text-slate-400">${p.region}</span>
+                  <span class="text-secondary dark:text-slate-400">${escapeHtml(p.region)}</span>
                 </div>` : ''}
               </div>
             </div>
@@ -1875,27 +1894,27 @@
           const nextSteps = e.nextSteps ? e.nextSteps.split(',').map(s => s.trim()).filter(Boolean) : [];
           const stepsHtml = nextSteps.length ? `
             <div class="flex flex-wrap gap-1 mt-2">
-              ${nextSteps.map(s => `<span class="text-[10px] bg-primary/10 text-primary dark:bg-[#003366]/40 dark:text-[#00FFFF] px-2 py-0.5 rounded-full font-medium">→ ${s}</span>`).join('')}
+              ${nextSteps.map(s => `<span class="text-[10px] bg-primary/10 text-primary dark:bg-[#003366]/40 dark:text-[#00FFFF] px-2 py-0.5 rounded-full font-medium">→ ${escapeHtml(s)}</span>`).join('')}
             </div>` : '';
 
           return `
         <div class="bg-white dark:bg-slate-900 border border-outline-variant dark:border-slate-800 rounded-lg p-6 flex flex-col h-full transition-all duration-200 hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] hover:border-[#00FFFF] dark:hover:border-[#00FFFF]">
           <div class="flex justify-between items-start mb-4">
             <div class="flex items-center gap-2">
-              <span class="${typeTag} text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded">${engType}</span>
+              <span class="${typeTag} text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded">${escapeHtml(engType)}</span>
             </div>
-            <span class="text-slate-400 text-xs font-medium">${e.date}</span>
+            <span class="text-slate-400 text-xs font-medium">${escapeHtml(e.date)}</span>
           </div>
-          <h3 class="font-h2 text-lg mb-2 text-primary dark:text-white">${e.title}</h3>
+          <h3 class="font-h2 text-lg mb-2 text-primary dark:text-white">${escapeHtml(e.title)}</h3>
           <div class="flex items-center gap-2 mb-4">
-            <span class="font-semibold text-sm text-secondary dark:text-[#00FFFF]">${e.partner || '—'}</span>
+            <span class="font-semibold text-sm text-secondary dark:text-[#00FFFF]">${escapeHtml(e.partner || '—')}</span>
           </div>
           <div class="space-y-3 mb-6 flex-grow">
             <div class="flex items-start gap-2">
               <span class="material-symbols-outlined text-outline dark:text-slate-500 text-sm">location_on</span>
-              <span class="text-body-sm text-on-surface-variant dark:text-slate-400">${loc}</span>
+              <span class="text-body-sm text-on-surface-variant dark:text-slate-400">${escapeHtml(loc)}</span>
             </div>
-            <p class="text-body-sm text-on-surface-variant dark:text-slate-400 line-clamp-3">${note}</p>
+            <p class="text-body-sm text-on-surface-variant dark:text-slate-400 line-clamp-3">${escapeHtml(note)}</p>
             ${stepsHtml}
           </div>
           <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
@@ -1943,11 +1962,11 @@
             <span class="material-symbols-outlined text-[16px]">close</span>
           </button>
           <div>
-            <input type="text" class="sp-name w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-sm text-primary dark:text-white outline-none focus:border-primary" placeholder="Sub-task name or breakdown" value="${sp ? sp.name : ''}" required>
+            <input type="text" class="sp-name w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-sm text-primary dark:text-white outline-none focus:border-primary" placeholder="Sub-task name or breakdown" value="${escapeHtml(sp ? sp.name : '')}" required>
           </div>
           <div class="flex gap-2">
-            <input type="text" class="sp-handler flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-sm text-primary dark:text-white outline-none focus:border-primary" placeholder="Person responsible" value="${sp ? sp.handler : ''}">
-            <input type="date" class="sp-due-date w-32 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-sm text-primary dark:text-white outline-none focus:border-primary" value="${sp ? sp.dueDate : ''}">
+            <input type="text" class="sp-handler flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-sm text-primary dark:text-white outline-none focus:border-primary" placeholder="Person responsible" value="${escapeHtml(sp ? sp.handler : '')}">
+            <input type="date" class="sp-due-date w-32 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-sm text-primary dark:text-white outline-none focus:border-primary" value="${escapeHtml(sp ? sp.dueDate : '')}">
           </div>
         `;
         container.appendChild(div);
@@ -2049,9 +2068,9 @@
               <div class="space-y-3">
                 ${p.subprojects.map(sp => `
                   <div class="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-                    <div class="font-bold text-sm text-primary dark:text-white mb-2">${sp.name}</div>
+                    <div class="font-bold text-sm text-primary dark:text-white mb-2">${escapeHtml(sp.name)}</div>
                     <div class="flex flex-wrap gap-4 text-xs text-outline dark:text-slate-400">
-                      ${sp.handler ? `<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px]">person</span>${sp.handler}</div>` : ''}
+                      ${sp.handler ? `<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px]">person</span>${escapeHtml(sp.handler)}</div>` : ''}
                       ${sp.dueDate ? `<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px]">calendar_today</span>Due: ${new Date(sp.dueDate).toLocaleDateString()}</div>` : ''}
                     </div>
                   </div>`).join('')}
@@ -2074,10 +2093,10 @@
           <div class="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8">
             <div class="flex-1 min-w-0">
               <div class="flex flex-wrap items-center gap-2 mb-3">
-                <span class="px-3 py-1 rounded-full ${styles.badge} text-xs font-bold uppercase tracking-wider">${p.status}</span>
-                ${p.region ? `<span class="text-sm text-outline dark:text-slate-400 font-medium flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">location_on</span>${p.region}</span>` : ''}
+                <span class="px-3 py-1 rounded-full ${styles.badge} text-xs font-bold uppercase tracking-wider">${escapeHtml(p.status)}</span>
+                ${p.region ? `<span class="text-sm text-outline dark:text-slate-400 font-medium flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">location_on</span>${escapeHtml(p.region)}</span>` : ''}
               </div>
-              <h1 class="font-h1 text-h1 text-primary dark:text-white leading-tight break-words">${p.name}</h1>
+              <h1 class="font-h1 text-h1 text-primary dark:text-white leading-tight break-words">${escapeHtml(p.name)}</h1>
             </div>
             ${actionBtns}
           </div>
@@ -2090,13 +2109,13 @@
               ${p.breakdown ? `
               <div class="bg-white dark:bg-slate-900 border border-outline-variant dark:border-slate-800 rounded-xl p-6">
                 <div class="text-xs text-outline dark:text-slate-400 uppercase font-bold tracking-wider mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-[14px]">description</span>Project Breakdown</div>
-                <p class="text-sm text-on-surface-variant dark:text-slate-300 leading-relaxed whitespace-pre-line">${p.breakdown}</p>
+                <p class="text-sm text-on-surface-variant dark:text-slate-300 leading-relaxed whitespace-pre-line">${escapeHtml(p.breakdown)}</p>
               </div>` : ''}
 
               ${p.notes ? `
               <div class="bg-white dark:bg-slate-900 border border-outline-variant dark:border-slate-800 rounded-xl p-6">
                 <div class="text-xs text-outline dark:text-slate-400 uppercase font-bold tracking-wider mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-[14px]">format_list_bulleted</span>Key Objectives</div>
-                <div class="text-sm text-on-surface-variant dark:text-slate-300 leading-relaxed whitespace-pre-line">${p.notes}</div>
+                <div class="text-sm text-on-surface-variant dark:text-slate-300 leading-relaxed whitespace-pre-line">${escapeHtml(p.notes)}</div>
               </div>` : ''}
 
               ${subTasksHtml}
@@ -2104,7 +2123,7 @@
               ${p.image ? `
               <div class="bg-white dark:bg-slate-900 border border-outline-variant dark:border-slate-800 rounded-xl p-6">
                 <div class="text-xs text-outline dark:text-slate-400 uppercase font-bold tracking-wider mb-3">Attached Photo</div>
-                <img src="${p.image}" alt="Project attachment" class="rounded-lg max-h-96 w-full object-cover cursor-pointer hover:opacity-95 transition-opacity" onclick="window.open(this.src,'_blank')">
+                <img src="${safeUrl(p.image)}" alt="Project attachment" class="rounded-lg max-h-96 w-full object-cover cursor-pointer hover:opacity-95 transition-opacity" onclick="window.open(this.src,'_blank')">
               </div>` : ''}
 
               ${!hasContent ? `
@@ -2128,7 +2147,7 @@
                     </div>
                     <div>
                       <div class="text-[10px] text-outline dark:text-slate-500 uppercase font-bold tracking-wider mb-0.5">Owner</div>
-                      <div class="text-sm font-semibold text-primary dark:text-white">${p.handler || 'Unassigned'}</div>
+                      <div class="text-sm font-semibold text-primary dark:text-white">${escapeHtml(p.handler || 'Unassigned')}</div>
                     </div>
                   </div>
                   ${p.dueDate ? `
@@ -2148,7 +2167,7 @@
                     </div>
                     <div>
                       <div class="text-[10px] text-outline dark:text-slate-500 uppercase font-bold tracking-wider mb-0.5">Region</div>
-                      <div class="text-sm font-semibold text-primary dark:text-white">${p.region}</div>
+                      <div class="text-sm font-semibold text-primary dark:text-white">${escapeHtml(p.region)}</div>
                     </div>
                   </div>` : ''}
                   ${p.category ? `
@@ -2158,7 +2177,7 @@
                     </div>
                     <div>
                       <div class="text-[10px] text-outline dark:text-slate-500 uppercase font-bold tracking-wider mb-0.5">Category</div>
-                      <div class="text-sm font-semibold text-primary dark:text-white">${p.category}</div>
+                      <div class="text-sm font-semibold text-primary dark:text-white">${escapeHtml(p.category)}</div>
                     </div>
                   </div>` : ''}
                   ${p.contractor ? `
@@ -2168,12 +2187,12 @@
                     </div>
                     <div>
                       <div class="text-[10px] text-outline dark:text-slate-500 uppercase font-bold tracking-wider mb-0.5">Contractor</div>
-                      <div class="text-sm font-semibold text-primary dark:text-white">${p.contractor}</div>
+                      <div class="text-sm font-semibold text-primary dark:text-white">${escapeHtml(p.contractor)}</div>
                     </div>
                   </div>` : ''}
                   ${p.link ? `
                   <div class="pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <a href="${p.link}" target="_blank" rel="noopener" class="flex items-center gap-2 text-secondary dark:text-[#00FFFF] text-sm font-bold hover:underline">
+                    <a href="${safeUrl(p.link)}" target="_blank" rel="noopener" class="flex items-center gap-2 text-secondary dark:text-[#00FFFF] text-sm font-bold hover:underline">
                       <span class="material-symbols-outlined text-[16px]">open_in_new</span>Supporting Link
                     </a>
                   </div>` : ''}
@@ -2197,7 +2216,7 @@
                   <div class="space-y-1 text-xs border-b border-slate-100 dark:border-slate-800 pb-3 last:border-0 last:pb-0 relative group">
                     <!-- Row 1: ID and delete icon -->
                     <div class="flex justify-between items-start gap-2">
-                      <span class="font-bold text-primary dark:text-white truncate max-w-[120px]">${up.author}</span>
+                      <span class="font-bold text-primary dark:text-white truncate max-w-[120px]">${escapeHtml(up.author)}</span>
                       ${isAdmin ? `
                       <button onclick="deleteProjectUpdate(${p.id}, ${p.updates.length - 1 - index})" class="text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                         <span class="material-symbols-outlined text-[14px]">delete</span>
@@ -2206,7 +2225,7 @@
                     </div>
                     <!-- Row 2: Message and timestamp -->
                     <div class="flex justify-between items-end gap-2 mt-1">
-                      <p class="text-on-surface-variant dark:text-slate-300 leading-normal whitespace-pre-wrap flex-1 break-words">${up.content}</p>
+                      <p class="text-on-surface-variant dark:text-slate-300 leading-normal whitespace-pre-wrap flex-1 break-words">${escapeHtml(up.content)}</p>
                       <span class="text-[10px] text-outline dark:text-slate-500 shrink-0 whitespace-nowrap">${new Date(up.date).toLocaleDateString('en-GB', {day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit'})}</span>
                     </div>
                   </div>
@@ -2325,7 +2344,7 @@
                 </div>
                 <ul class="space-y-2">
                   ${bullets.map(s => `<li class="flex items-start gap-2 text-sm font-medium text-primary dark:text-[#00FFFF]">
-                    <span class="material-symbols-outlined text-[14px] mt-0.5 shrink-0">chevron_right</span>${s.trim()}
+                    <span class="material-symbols-outlined text-[14px] mt-0.5 shrink-0">chevron_right</span>${escapeHtml(s.trim())}
                   </li>`).join('')}
                 </ul>
               </div>`;
@@ -2346,11 +2365,11 @@
           <div class="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8">
             <div class="flex-1 min-w-0">
               <div class="flex flex-wrap items-center gap-2 mb-3">
-                <span class="${typeTag} px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">${e.engagementType || 'External'}</span>
+                <span class="${typeTag} px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">${escapeHtml(e.engagementType || 'External')}</span>
                 ${e.mdAttention ? `<span class="flex items-center gap-1 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded-full"><span class="material-symbols-outlined text-[12px]">priority_high</span>MD's Attention</span>` : ''}
               </div>
-              <h1 class="font-h1 text-h1 text-primary dark:text-white leading-tight break-words">${e.title}</h1>
-              <p class="text-secondary dark:text-[#00FFFF] font-semibold mt-2 text-base">${e.partner || ''}</p>
+              <h1 class="font-h1 text-h1 text-primary dark:text-white leading-tight break-words">${escapeHtml(e.title)}</h1>
+              <p class="text-secondary dark:text-[#00FFFF] font-semibold mt-2 text-base">${escapeHtml(e.partner || '')}</p>
             </div>
             ${actionBtns}
           </div>
@@ -2363,7 +2382,7 @@
               ${e.notes ? `
               <div class="bg-white dark:bg-slate-900 border border-outline-variant dark:border-slate-800 rounded-xl p-6">
                 <div class="text-xs text-outline dark:text-slate-400 uppercase font-bold tracking-wider mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-[14px]">description</span>Outcomes &amp; Notes</div>
-                <p class="text-sm text-on-surface-variant dark:text-slate-300 leading-relaxed whitespace-pre-line">${e.notes}</p>
+                <p class="text-sm text-on-surface-variant dark:text-slate-300 leading-relaxed whitespace-pre-line">${escapeHtml(e.notes)}</p>
               </div>` : ''}
 
               ${nextPhaseHtml}
@@ -2371,7 +2390,7 @@
               ${e.image ? `
               <div class="bg-white dark:bg-slate-900 border border-outline-variant dark:border-slate-800 rounded-xl p-6">
                 <div class="text-xs text-outline dark:text-slate-400 uppercase font-bold tracking-wider mb-3">Attached Photo</div>
-                <img src="${e.image}" alt="Engagement attachment" class="rounded-lg max-h-96 w-full object-cover cursor-pointer hover:opacity-95 transition-opacity" onclick="window.open(this.src,'_blank')">
+                <img src="${safeUrl(e.image)}" alt="Engagement attachment" class="rounded-lg max-h-96 w-full object-cover cursor-pointer hover:opacity-95 transition-opacity" onclick="window.open(this.src,'_blank')">
               </div>` : ''}
 
               ${!hasContent ? `
@@ -2395,7 +2414,7 @@
                     </div>
                     <div>
                       <div class="text-[10px] text-outline dark:text-slate-500 uppercase font-bold tracking-wider mb-0.5">Partner / Stakeholder</div>
-                      <div class="text-sm font-semibold text-primary dark:text-white">${e.partner || '—'}</div>
+                      <div class="text-sm font-semibold text-primary dark:text-white">${escapeHtml(e.partner || '—')}</div>
                     </div>
                   </div>
                   <div class="flex items-center gap-3">
@@ -2404,7 +2423,7 @@
                     </div>
                     <div>
                       <div class="text-[10px] text-outline dark:text-slate-500 uppercase font-bold tracking-wider mb-0.5">Owner</div>
-                      <div class="text-sm font-semibold text-primary dark:text-white">${e.handler || '—'}</div>
+                      <div class="text-sm font-semibold text-primary dark:text-white">${escapeHtml(e.handler || '—')}</div>
                     </div>
                   </div>
                   ${e.location || e.region ? `
@@ -2414,7 +2433,7 @@
                     </div>
                     <div>
                       <div class="text-[10px] text-outline dark:text-slate-500 uppercase font-bold tracking-wider mb-0.5">Location</div>
-                      <div class="text-sm font-semibold text-primary dark:text-white">${e.location || e.region}</div>
+                      <div class="text-sm font-semibold text-primary dark:text-white">${escapeHtml(e.location || e.region)}</div>
                     </div>
                   </div>` : ''}
                   ${e.date ? `
@@ -2424,7 +2443,7 @@
                     </div>
                     <div>
                       <div class="text-[10px] text-outline dark:text-slate-500 uppercase font-bold tracking-wider mb-0.5">Date Logged</div>
-                      <div class="text-sm font-semibold text-primary dark:text-white">${e.date}</div>
+                      <div class="text-sm font-semibold text-primary dark:text-white">${escapeHtml(e.date)}</div>
                     </div>
                   </div>` : ''}
                   ${e.dueDate ? `
@@ -2439,7 +2458,7 @@
                   </div>` : ''}
                   ${e.link ? `
                   <div class="pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <a href="${e.link}" target="_blank" rel="noopener" class="flex items-center gap-2 text-secondary dark:text-[#00FFFF] text-sm font-bold hover:underline">
+                    <a href="${safeUrl(e.link)}" target="_blank" rel="noopener" class="flex items-center gap-2 text-secondary dark:text-[#00FFFF] text-sm font-bold hover:underline">
                       <span class="material-symbols-outlined text-[16px]">open_in_new</span>Supporting Link
                     </a>
                   </div>` : ''}
@@ -2778,9 +2797,9 @@
             document.getElementById('metrics-section').classList.remove('hidden');
             outMetrics.innerHTML = data.metrics.map(m => `
             <div class="p-4 border border-outline-variant dark:border-slate-800 rounded bg-white dark:bg-slate-800">
-              <div class="text-[11px] font-label text-outline dark:text-slate-500 uppercase">${m.key}</div>
-              <div class="text-2xl font-h1 text-primary dark:text-[#00FFFF] my-1">${m.value}</div>
-              <div class="text-[11px] text-outline dark:text-slate-400 leading-tight">${m.note || ''}</div>
+              <div class="text-[11px] font-label text-outline dark:text-slate-500 uppercase">${escapeHtml(m.key)}</div>
+              <div class="text-2xl font-h1 text-primary dark:text-[#00FFFF] my-1">${escapeHtml(m.value)}</div>
+              <div class="text-[11px] text-outline dark:text-slate-400 leading-tight">${escapeHtml(m.note || '')}</div>
             </div>
           `).join('');
           } else {
@@ -2812,11 +2831,11 @@
               return `
             <div class="p-4 ${bgClass} border-l-4 ${borderClass} mb-3 relative group transition-colors">
               <div class="flex justify-between items-start mb-2 pr-8">
-                <span class="font-bold text-[11px] ${topTextClass} uppercase tracking-wider">${f.severity ? f.severity : ''}</span>
-                <span class="text-[11px] text-slate-400 font-medium">${f.statusText ? f.statusText : ''}</span>
+                <span class="font-bold text-[11px] ${topTextClass} uppercase tracking-wider">${escapeHtml(f.severity ? f.severity : '')}</span>
+                <span class="text-[11px] text-slate-400 font-medium">${escapeHtml(f.statusText ? f.statusText : '')}</span>
               </div>
-              ${f.title && f.title !== 'Risk Flag' ? `<h3 class="font-bold text-[14px] text-[#003366] dark:text-blue-300 mb-1 w-11/12">${f.title}</h3>` : ''}
-              <p class="text-[13px] text-slate-600 dark:text-slate-400 leading-relaxed">${f.description}</p>
+              ${f.title && f.title !== 'Risk Flag' ? `<h3 class="font-bold text-[14px] text-[#003366] dark:text-blue-300 mb-1 w-11/12">${escapeHtml(f.title)}</h3>` : ''}
+              <p class="text-[13px] text-slate-600 dark:text-slate-400 leading-relaxed">${escapeHtml(f.description)}</p>
               
               <button onclick="addToDashboard(${index})" class="absolute top-4 right-4 text-slate-300 hover:text-primary dark:hover:text-white transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100" title="Add to Dashboard">
                 <span class="material-symbols-outlined text-[20px]">add_circle</span>
@@ -2836,7 +2855,7 @@
           if (data.projects && data.projects.length) {
             entityHtml += data.projects.map((p, i) => `
             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-              <td class="p-3 font-bold text-primary dark:text-white">${p.name}</td>
+              <td class="p-3 font-bold text-primary dark:text-white">${escapeHtml(p.name)}</td>
               <td class="p-3"><span class="px-2 py-0.5 rounded bg-primary-container/20 dark:bg-blue-900 text-primary dark:text-blue-300 text-[10px] uppercase font-bold">Infrastructure</span></td>
               <td class="p-3 text-center text-outline dark:text-slate-400 font-mono">98%</td>
               <td class="p-3 text-right">
@@ -2848,7 +2867,7 @@
           if (data.engagements && data.engagements.length) {
             entityHtml += data.engagements.map((e, i) => `
             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-              <td class="p-3 font-bold text-primary dark:text-white">${e.title}</td>
+              <td class="p-3 font-bold text-primary dark:text-white">${escapeHtml(e.title)}</td>
               <td class="p-3"><span class="px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 text-[10px] uppercase font-bold">Engagement</span></td>
               <td class="p-3 text-center text-outline dark:text-slate-400 font-mono">92%</td>
               <td class="p-3 text-right">
@@ -2881,7 +2900,7 @@
           document.querySelector('#upload-zone p').textContent = 'Drag & drop engineering reports or water project docs';
 
         } catch (err) {
-          statusEl.innerHTML = `<span class="text-error">Error: ${err.message}</span>`;
+          statusEl.innerHTML = `<span class="text-error">Error: ${escapeHtml(err.message)}</span>`;
           console.error(err);
         }
       }
@@ -2942,8 +2961,8 @@
             <span class="material-symbols-outlined text-[24px] text-red-500">picture_as_pdf</span>
           </div>
           <div class="overflow-hidden">
-            <div class="text-sm font-bold text-primary dark:text-white truncate">${h.name}</div>
-            <div class="text-[11px] text-outline dark:text-slate-400 mt-0.5">Analyzed ${h.date}</div>
+            <div class="text-sm font-bold text-primary dark:text-white truncate">${escapeHtml(h.name)}</div>
+            <div class="text-[11px] text-outline dark:text-slate-400 mt-0.5">Analyzed ${escapeHtml(h.date)}</div>
           </div>
         </div>
       `).join('');
@@ -3084,7 +3103,7 @@
               <button onclick="completeTodo(${t.id})" title="Mark complete"
                 class="w-5 h-5 rounded-full border-2 border-slate-300 dark:border-slate-600 ${cfg.ring} transition-all flex items-center justify-center shrink-0 group-hover:scale-110">
               </button>
-              <p class="flex-1 text-sm font-medium text-primary dark:text-white truncate">${t.text}</p>
+              <p class="flex-1 text-sm font-medium text-primary dark:text-white truncate">${escapeHtml(t.text)}</p>
               <button onclick="deleteTodoItem(${t.id})" title="Delete"
                 class="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-error transition-all">
               <span class="material-symbols-outlined text-[18px]">close</span>
@@ -3140,8 +3159,8 @@
                   class="w-5 h-5 rounded-full border-2 border-current ${cfg.text} transition-all shrink-0 hover:scale-110 mt-0.5">
                 </button>
                 <div class="flex flex-col flex-1 min-w-0">
-                  <span class="text-sm font-medium text-primary dark:text-white break-words">${t.text}</span>
-                  <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${cfg.badge} self-start mt-1.5">${PRIORITY_CFG.label} ${t.priority}</span>
+                  <span class="text-sm font-medium text-primary dark:text-white break-words">${escapeHtml(t.text)}</span>
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${cfg.badge} self-start mt-1.5">${PRIORITY_CFG.label} ${escapeHtml(t.priority)}</span>
                 </div>
               </div>
             `;
